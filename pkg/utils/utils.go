@@ -72,8 +72,7 @@ func GetVfid(addr string, pfName string) (int, error) {
 	return id, fmt.Errorf("unable to get VF ID with PF: %s and VF pci address %v", pfName, addr)
 }
 
-// GetPfName returns PF net device name of a given VF pci address
-func GetPfName(vf string) (string, error) {
+/*func GetPfName(vf string) (string, error) {
 	pfSymLink := filepath.Join(SysBusPci, vf, "physfn", "net")
 	_, err := os.Lstat(pfSymLink)
 	if err != nil {
@@ -90,7 +89,34 @@ func GetPfName(vf string) (string, error) {
 	}
 
 	return strings.TrimSpace(files[0].Name()), nil
+}*/
+
+// GetPfName returns PF net device name of a given VF pci address
+func GetPfName(vf string) (string, error) {
+                path := filepath.Join(SysBusPci, vf, "physfn/net")
+                files, err := ioutil.ReadDir(path)
+                if err != nil {
+                                if os.IsNotExist(err) {
+                                                path := filepath.Join(SysBusPci, vf, "net")
+                                                files, err = ioutil.ReadDir(path)
+                                                if err != nil {
+                                                                if os.IsNotExist(err) {
+                                                                                return vf, nil
+                                                                }
+                                                                return "", err
+                                                }
+                                                if len(files) < 1 {
+                                                                return "", fmt.Errorf("no interface name found for device %s", vf)
+                                                }
+                                                return files[0].Name(), nil
+                                }
+                                return "", err
+                } else if len(files) > 0 {
+                                return files[0].Name(), nil
+                }
+                return "", fmt.Errorf("the PF name is not found for device %s", vf)
 }
+
 
 // GetPciAddress takes in a interface(ifName) and VF id and returns returns its pci addr as string
 func GetPciAddress(ifName string, vf int) (string, error) {
